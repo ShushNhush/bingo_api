@@ -1,0 +1,22 @@
+
+
+### create room
+POST {{url}}/rooms
+Content-Type: application/json
+
+{
+   "rules": "sample rules"
+}
+
+### new player join room
+POST {{url}}/rooms/5793/join
+Content-Type: application/json
+
+{
+    "name": "player3"
+}
+
+### pull next number
+POST {{url}}/rooms/5793/pull
+Content-Type: application/json
+
