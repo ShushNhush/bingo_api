@@ -36,23 +36,33 @@ public class RoomDAO {
         }
     }
 
-    public RoomDTO create(RoomDTO room) {
-
+    public RoomDTO create(RoomDTO roomDTO, PlayerDTO hostDTO) {
         try (var em = emf.createEntityManager()) {
 
+            if (hostDTO == null) {
+                throw new IllegalArgumentException("Host cannot be null!");
+            }
+
+            if (roomDTO == null) {
+                throw new IllegalArgumentException("Room cannot be null!");
+            }
             em.getTransaction().begin();
 
-            Room newRoom = new Room(room);
-
+            Room newRoom = new Room(roomDTO);
             newRoom.initializeNumbers();
             newRoom.setRoomNumber(generateUniqueRoomNumber());
 
+            Player host = new Player(hostDTO);
+
+            newRoom.setHost(host);
+            newRoom.addPlayer(host);
+
             em.persist(newRoom);
+            em.persist(host);
 
             em.getTransaction().commit();
 
             return new RoomDTO(newRoom);
-
         }
     }
 

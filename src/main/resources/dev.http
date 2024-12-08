@@ -5,7 +5,10 @@ POST {{url}}/rooms
 Content-Type: application/json
 
 {
-   "rules": "sample rules"
+  "rules": "sample rules",
+  "host": {
+    "name": "John Doe"
+  }
 }
 
 ### new player join room

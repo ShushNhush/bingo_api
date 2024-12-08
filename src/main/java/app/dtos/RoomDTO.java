@@ -4,11 +4,13 @@ import app.entities.Room;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 public class RoomDTO {
@@ -21,6 +23,8 @@ public class RoomDTO {
 
     private boolean isWon;
 
+    private PlayerDTO host;
+
     private List<Integer> availableNumbers;
 
     private List<Integer> pulledNumbers;
@@ -32,6 +36,7 @@ public class RoomDTO {
         this.rules = room.getRules();
         this.roomNumber = room.getRoomNumber();
         this.isWon = room.isWon();
+        this.host = new PlayerDTO(room.getHost());
         this.availableNumbers = room.getAvailableNumbers();
         this.pulledNumbers = room.getPulledNumbers();
         this.players = room.getPlayers().stream()

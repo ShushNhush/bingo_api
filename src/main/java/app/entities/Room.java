@@ -30,6 +30,7 @@ public class Room {
 
     private boolean isWon;
 
+    @ManyToOne
     private Player host;
 
     @ElementCollection
