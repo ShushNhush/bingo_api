@@ -8,6 +8,7 @@ import app.utils.BingoBoardGenerator;
 import app.utils.BoardUtils;
 import app.utils.RoomCodeGenerator;
 import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.NoResultException;
 import jakarta.persistence.TypedQuery;
 
 import java.util.List;
@@ -53,7 +54,7 @@ public class RoomDAO {
             newRoom.setRoomNumber(generateUniqueRoomNumber());
 
             Player host = new Player(hostDTO);
-
+            host.setBoard(BoardUtils.serializeBoard(BingoBoardGenerator.generateBoard(null)));
             newRoom.setHost(host);
             newRoom.addPlayer(host);
 
@@ -73,9 +74,9 @@ public class RoomDAO {
             TypedQuery<Room> query = em.createQuery("SELECT r FROM Room r WHERE r.roomNumber = :roomNumber", Room.class);
             query.setParameter("roomNumber", roomNumber);
             Room room = query.getSingleResult();
-            if (room == null) {
-                throw new IllegalArgumentException("Room not found!");
-            }
+
+            Player host = room.getHost();
+            host.updateLastActive();
 
             int number = room.pullNumber();
             em.merge(room);
@@ -83,32 +84,35 @@ public class RoomDAO {
             em.getTransaction().commit();
             return number;
         }
+        catch (NoResultException e) {
+            throw new IllegalArgumentException("Room not found!");
+        }
     }
 
     public PlayerDTO addPlayerToRoom(int roomNumber, PlayerDTO playerDTO) {
         try (var em = emf.createEntityManager()) {
             em.getTransaction().begin();
 
-            // find room on roomNumber
+            // Retrieve the room
             TypedQuery<Room> query = em.createQuery("SELECT r FROM Room r WHERE r.roomNumber = :roomNumber", Room.class);
             query.setParameter("roomNumber", roomNumber);
             Room room = query.getSingleResult();
+
             if (room == null) {
                 throw new IllegalArgumentException("Room not found!");
             }
 
-            String[][] board = BingoBoardGenerator.generateBoard(null);
-            String boardJson = BoardUtils.serializeBoard(board);
-            Player player = new Player(playerDTO);
-            player.setBoard(boardJson);
-            room.addPlayer(player); // Use entity logic to add the player
+            // Create and associate the player
+            Player newPlayer = new Player(playerDTO);
+            newPlayer.setBoard(BoardUtils.serializeBoard(BingoBoardGenerator.generateBoard(null)));
+            newPlayer.setRoom(room);
+            room.addPlayer(newPlayer); // Add player to the room's player list
 
-            em.persist(player); // Persist the new player
-            em.merge(room);     // Update the room
+            em.persist(newPlayer); // Persist the player
+            em.merge(room);        // Update the room
 
             em.getTransaction().commit();
-
-        return new PlayerDTO(player);
+            return new PlayerDTO(newPlayer);
         }
     }
 

@@ -40,7 +40,7 @@ public class Utils {
         }
     }
 
-    public ObjectMapper getObjectMapper() {
+    public static ObjectMapper getObjectMapper() {
         ObjectMapper objectMapper = new ObjectMapper();
         objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false); // Ignore unknown properties in JSON
         objectMapper.registerModule(new JavaTimeModule()); // Serialize and deserialize java.time objects

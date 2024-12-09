@@ -12,7 +12,7 @@ Content-Type: application/json
 }
 
 ### new player join room
-POST {{url}}/rooms/5793/join
+POST {{url}}/rooms/9509/join
 Content-Type: application/json
 
 {

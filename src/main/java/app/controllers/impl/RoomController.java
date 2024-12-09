@@ -48,17 +48,27 @@ public class RoomController {
             // Create the room
             RoomDTO newRoom = roomDAO.create(roomDTO, host);
 
-            // Initialize WebSocket session for the room
-            WebSocketHandler.createRoomSession(newRoom.getRoomNumber());
+            // Build WebSocket URL
+            String wsUrl = "/rooms/" + newRoom.getRoomNumber();
+            System.out.println("from create controller: " + newRoom.getHost().getName());
 
-            ctx.json(Map.of("message", "New room created", "roomNumber", newRoom.getRoomNumber()));
-            ctx.status(201);
+            ctx.sessionAttribute("player", newRoom.getHost());
+            PlayerDTO testPlayer = ctx.sessionAttribute("player");
+            System.out.println(testPlayer.getName());
+            // Respond with JSON
+            ctx.status(201).json(Map.of(
+                    "message", "New room created",
+                    "roomNumber", newRoom.getRoomNumber(),
+                    "player", newRoom.getHost(),
+                    "webSocketUrl", wsUrl
+            ));
         } catch (IllegalArgumentException e) {
             ctx.status(400).json(Map.of("error", "Invalid input", "details", e.getMessage()));
         } catch (Exception e) {
             ctx.status(500).json(Map.of("error", "An unexpected error occurred", "details", e.getMessage()));
         }
     }
+
 
     public void pullNumber(Context ctx) {
         int roomId = Integer.parseInt(ctx.pathParam("roomNumber"));
@@ -69,18 +79,23 @@ public class RoomController {
     public void addPlayer(Context ctx) {
         try {
             int roomNumber = Integer.parseInt(ctx.pathParam("roomNumber")); // Extract room number
-            PlayerDTO playerDTO = ctx.bodyAsClass(PlayerDTO.class);
+            PlayerDTO playerDTO = ctx.bodyAsClass(PlayerDTO.class);        // Parse player details from request body
 
-            // Add player to the database
-            PlayerDTO newPlayer = roomDAO.addPlayerToRoom(roomNumber, playerDTO);
+            PlayerDTO newPlayer = roomDAO.addPlayerToRoom(roomNumber, playerDTO); // Add player to the room
 
-            // Notify WebSocket participants
-            WebSocketHandler.addPlayerToRoom(roomNumber, newPlayer);
-
-            ctx.status(201).json(Map.of("message", "Player added", "player", newPlayer));
+            // Respond with the full PlayerDTO object and WebSocket URL
+            String webSocketUrl = "ws://localhost:7171/api/rooms/" + roomNumber;
+            ctx.status(201).json(Map.of(
+                    "message", "Player added successfully",
+                    "player", newPlayer,
+                    "webSocketUrl", webSocketUrl
+            ));
         } catch (Exception e) {
             ctx.status(400).json(Map.of("error", "Invalid input", "details", e.getMessage()));
         }
     }
+
+
+
 
 }

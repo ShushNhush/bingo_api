@@ -1,5 +1,6 @@
 package app.config;
 
+import app.routes.WebSocketRoute;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import app.exceptions.ApiException;
 import app.routes.Routes;
@@ -31,6 +32,7 @@ public class ApplicationConfig {
         config.router.apiBuilder(routes.getRoutes());
         config.router.apiBuilder(SecurityRoutes.getSecuredRoutes());
         config.router.apiBuilder(SecurityRoutes.getSecurityRoutes());
+
     }
 
     public static Javalin startServer(int port) {
@@ -40,6 +42,8 @@ public class ApplicationConfig {
         app.after(ApplicationConfig::afterRequest);
         app.before(ApplicationConfig::corsHeaders);
         app.options("/*", ApplicationConfig::corsHeadersOptions);
+
+        new WebSocketRoute().register(app);
 
         app.exception(ApiException.class, ApplicationConfig::apiExceptionHandler);
         app.exception(app.security.exceptions.ApiException.class, ApplicationConfig::apiSecurityExceptionHandler);

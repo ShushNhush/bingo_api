@@ -2,11 +2,13 @@ package app.dtos;
 
 import app.entities.Player;
 import app.entities.Room;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Getter
@@ -21,12 +23,16 @@ public class PlayerDTO {
 
     private String board;
 
+    @JsonIgnore
     private Room room;
+
+    private LocalDateTime lastActiveAt;
 
     public PlayerDTO(Player player) {
         this.id = player.getId();
         this.name = player.getName();
         this.board = player.getBoard();
         this.room = player.getRoom();
+        this.lastActiveAt = player.getLastActiveAt();
     }
 }

@@ -7,6 +7,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
+
 @Setter
 @Getter
 @NoArgsConstructor
@@ -26,6 +28,13 @@ public class Player {
     @ManyToOne(optional = false)
     private Room room;
 
+    private LocalDateTime lastActiveAt;
+
+    @PrePersist
+    protected void onCreate() {
+        lastActiveAt = LocalDateTime.now();
+    }
+
     public Player(PlayerDTO playerDTO) {
         this.id = playerDTO.getId();
         this.name = playerDTO.getName();
@@ -33,4 +42,7 @@ public class Player {
         this.room = playerDTO.getRoom();
     }
 
+    public void updateLastActive() {
+        this.lastActiveAt = LocalDateTime.now();
+    }
 }
