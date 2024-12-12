@@ -5,21 +5,35 @@ POST {{url}}/rooms
 Content-Type: application/json
 
 {
-  "rules": "sample rules",
-  "host": {
+  "room": {
+    "rules": "sample rules"
+  },
+  "player": {
     "name": "John Doe"
   }
 }
+> {%
+    client.global.set("jwt_token", response.body.token);
+    console.log("JWT Token:", client.global.get("jwt_token"));
+%}
 
 ### new player join room
-POST {{url}}/rooms/9509/join
+POST {{url}}/rooms/5721/join
 Content-Type: application/json
 
 {
     "name": "player3"
 }
 
+### delete room
+DELETE {{url}}/rooms/8553
+accept: application/json
+
 ### pull next number
 POST {{url}}/rooms/5793/pull
 Content-Type: application/json
 
+### get player board
+GET {{url}}/rooms/8908/players/5
+accept: application/json
+Authorization: Bearer {{jwt_token}}

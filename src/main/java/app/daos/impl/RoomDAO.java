@@ -2,15 +2,18 @@ package app.daos.impl;
 
 import app.dtos.PlayerDTO;
 import app.dtos.RoomDTO;
+import app.dtos.RoomWithHostDTO;
 import app.entities.Player;
 import app.entities.Room;
 import app.utils.BingoBoardGenerator;
 import app.utils.BoardUtils;
 import app.utils.RoomCodeGenerator;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.NoResultException;
 import jakarta.persistence.TypedQuery;
 
+import java.util.Arrays;
 import java.util.List;
 
 public class RoomDAO {
@@ -37,33 +40,49 @@ public class RoomDAO {
         }
     }
 
-    public RoomDTO create(RoomDTO roomDTO, PlayerDTO hostDTO) {
+    public RoomDTO getRoom(int roomNumber) {
         try (var em = emf.createEntityManager()) {
+            var query = em.createQuery("SELECT r FROM Room r WHERE r.roomNumber = :roomNumber", Room.class);
+            query.setParameter("roomNumber", roomNumber);
+            Room room = query.getSingleResult();
+            return new RoomDTO(room);
+        }
+    }
 
-            if (hostDTO == null) {
-                throw new IllegalArgumentException("Host cannot be null!");
-            }
-
-            if (roomDTO == null) {
-                throw new IllegalArgumentException("Room cannot be null!");
-            }
+    public RoomWithHostDTO create(RoomDTO roomDTO, PlayerDTO hostDTO) {
+        try (var em = emf.createEntityManager()) {
             em.getTransaction().begin();
 
-            Room newRoom = new Room(roomDTO);
-            newRoom.initializeNumbers();
-            newRoom.setRoomNumber(generateUniqueRoomNumber());
+            Room room = new Room(roomDTO);
+            room.initializeNumbers();
+            room.setRoomNumber(generateUniqueRoomNumber());
+            em.persist(room);
 
             Player host = new Player(hostDTO);
+            host.setRoom(room); // Set the association
             host.setBoard(BoardUtils.serializeBoard(BingoBoardGenerator.generateBoard(null)));
-            newRoom.setHost(host);
-            newRoom.addPlayer(host);
-
-            em.persist(newRoom);
             em.persist(host);
+
+            room.setHost(host); // Update room with the host
+            em.merge(room);
 
             em.getTransaction().commit();
 
-            return new RoomDTO(newRoom);
+            return new RoomWithHostDTO(new RoomDTO(room), new PlayerDTO(host));
+        }
+    }
+
+    public void deleteRoom(int roomNumber) {
+        try (var em = emf.createEntityManager()) {
+            em.getTransaction().begin();
+
+            Room room = em.createQuery("SELECT r FROM Room r WHERE r.roomNumber = :roomNumber", Room.class)
+                    .setParameter("roomNumber", roomNumber)
+                    .getSingleResult();
+
+            em.remove(room);
+
+            em.getTransaction().commit();
         }
     }
 
@@ -89,7 +108,7 @@ public class RoomDAO {
         }
     }
 
-    public PlayerDTO addPlayerToRoom(int roomNumber, PlayerDTO playerDTO) {
+    public RoomWithHostDTO addPlayerToRoom(int roomNumber, PlayerDTO playerDTO) {
         try (var em = emf.createEntityManager()) {
             em.getTransaction().begin();
 
@@ -112,7 +131,7 @@ public class RoomDAO {
             em.merge(room);        // Update the room
 
             em.getTransaction().commit();
-            return new PlayerDTO(newPlayer);
+            return new RoomWithHostDTO(new RoomDTO(room), new PlayerDTO(newPlayer));
         }
     }
 
@@ -133,5 +152,73 @@ public class RoomDAO {
             return count > 0;
         }
     }
+
+    public boolean checkWinner(int roomNumber, int playerId) {
+        try (var em = emf.createEntityManager()) {
+            em.getTransaction().begin();
+
+            // Fetch the room
+            Room room = em.createQuery("SELECT r FROM Room r WHERE r.roomNumber = :roomNumber", Room.class)
+                    .setParameter("roomNumber", roomNumber)
+                    .getSingleResult();
+
+            // Fetch the player
+            Player player = em.find(Player.class, playerId);
+
+            if (player == null || room == null) {
+                throw new IllegalArgumentException("Room or player not found.");
+            }
+
+            // Parse the player's board
+            ObjectMapper mapper = new ObjectMapper();
+            String[][] board = mapper.readValue(player.getBoard(), String[][].class);
+
+            // Get the pulled numbers
+            List<Integer> pulledNumbers = room.getPulledNumbers();
+
+            // Check for a winning condition
+            boolean isWinner = checkWinningCondition(board, pulledNumbers);
+
+            em.getTransaction().commit();
+            return isWinner;
+        } catch (Exception e) {
+            throw new RuntimeException("Error checking winner: " + e.getMessage(), e);
+        }
+    }
+
+    private boolean checkWinningCondition(String[][] board, List<Integer> pulledNumbers) {
+        // Check rows
+        for (String[] row : board) {
+            if (Arrays.stream(row).allMatch(num -> pulledNumbers.contains(Integer.parseInt(num)))) {
+                return true;
+            }
+        }
+
+        // Check columns
+        for (int col = 0; col < board[0].length; col++) {
+            boolean columnMatch = true;
+            for (String[] row : board) {
+                if (!pulledNumbers.contains(Integer.parseInt(row[col]))) {
+                    columnMatch = false;
+                    break;
+                }
+            }
+            if (columnMatch) return true;
+        }
+
+        // Check diagonals
+        boolean leftDiagonal = true;
+        boolean rightDiagonal = true;
+        for (int i = 0; i < board.length; i++) {
+            if (!pulledNumbers.contains(Integer.parseInt(board[i][i]))) {
+                leftDiagonal = false;
+            }
+            if (!pulledNumbers.contains(Integer.parseInt(board[i][board.length - 1 - i]))) {
+                rightDiagonal = false;
+            }
+        }
+        return leftDiagonal || rightDiagonal;
+    }
+
 
 }

@@ -16,20 +16,52 @@ public class WebSocketHandler {
     private static final Map<Integer, Map<WsContext, PlayerDTO>> roomSessions = new ConcurrentHashMap<>();
 
     public static void onConnect(WsContext ctx, int roomNumber, PlayerDTO player) {
-        System.out.println("Player connecting: " + player.getName());
-
         roomSessions.putIfAbsent(roomNumber, new ConcurrentHashMap<>());
-
-        // Add the player to the room
         Map<WsContext, PlayerDTO> playersInRoom = roomSessions.get(roomNumber);
-        if (player != null) {
-            playersInRoom.put(ctx, player);
-            System.out.println("Player " + player.getName() + " added to room " + roomNumber);
-        } else {
-            System.out.println("Player data missing, closing connection");
-            ctx.send("Player data missing");
-            ctx.session.close();
+
+        // Remove old session if the player is reconnecting
+        playersInRoom.entrySet().removeIf(entry -> entry.getValue().getId() == player.getId());
+
+        // Add new session
+        playersInRoom.put(ctx, player);
+
+        System.out.println("Player reconnected: " + player.getName() + " to room: " + roomNumber);
+    }
+//    public static void onConnect(WsContext ctx, int roomNumber, PlayerDTO player) {
+//        System.out.println("Player connecting: " + player.getName() + " to room: " + roomNumber);
+//
+//        roomSessions.putIfAbsent(roomNumber, new ConcurrentHashMap<>());
+//        Map<WsContext, PlayerDTO> playersInRoom = roomSessions.get(roomNumber);
+//
+//        if (player != null) {
+//            // Check if the player already exists
+//            playersInRoom.entrySet().removeIf(entry -> entry.getValue().getId() == player.getId());
+//
+//            // Add the new context for the player
+//            playersInRoom.put(ctx, player);
+//
+//            System.out.println("Player " + player.getName() + " added to room " + roomNumber);
+//        } else {
+//            System.err.println("Player data missing, closing connection.");
+//            ctx.send("Error: Player data missing.");
+//            ctx.session.close();
+//        }
+//        // Log players in the room for debugging
+//        System.out.println("Current players in room " + roomNumber + ": " + playersInRoom.values());
+//    }
+
+    public static PlayerDTO getPlayerFromContext(WsContext ctx, int roomNumber) {
+        Map<WsContext, PlayerDTO> playersInRoom = roomSessions.get(roomNumber);
+        if (playersInRoom == null) {
+            throw new IllegalArgumentException("Room not found: " + roomNumber);
         }
+
+        PlayerDTO player = playersInRoom.get(ctx);
+        if (player == null) {
+            throw new IllegalArgumentException("Player not found in room: " + roomNumber);
+        }
+
+        return player;
     }
 
     public static void onMessage(WsContext ctx, int roomNumber, String message) {
@@ -65,7 +97,7 @@ public class WebSocketHandler {
         }
     }
 
-    private static void broadcastMessage(int roomNumber, String message) {
+    public static void broadcastMessage(int roomNumber, String message) {
 
         Map<WsContext, PlayerDTO> playersInRoom = roomSessions.get(roomNumber);
 

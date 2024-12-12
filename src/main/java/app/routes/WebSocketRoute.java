@@ -1,5 +1,7 @@
 package app.routes;
 
+import app.config.HibernateConfig;
+import app.daos.impl.RoomDAO;
 import app.dtos.PlayerDTO;
 import app.handlers.WebSocketHandler;
 import app.utils.Utils;
@@ -12,12 +14,15 @@ import java.util.Map;
 
 public class WebSocketRoute {
 
+    RoomDAO roomDAO = RoomDAO.getInstance(HibernateConfig.getEntityManagerFactory());
+
     public void register(Javalin app) {
 
         app.ws("/rooms/{roomNumber}", ws -> {
 
             ws.onConnect(ctx -> {
                 System.out.println("WebSocket connected: " + ctx.session.getRemoteAddress());
+                System.out.println("Session ID: " + ctx.sessionId());
                 ctx.session.setIdleTimeout(Duration.ofHours(5));
 
             });
@@ -31,31 +36,43 @@ public class WebSocketRoute {
                 String rawMessage = ctx.message();
 
                 try {
-                    // Attempt to parse as JSON
                     ObjectMapper mapper = Utils.getObjectMapper();
-                    Map<String, Object> messageMap;
-                    String action = null;
+                    Map<String, Object> messageMap = mapper.readValue(rawMessage, Map.class);
+                    String action = (String) messageMap.get("action");
 
-                    try {
-                        messageMap = mapper.readValue(rawMessage, Map.class);
-                        action = (String) messageMap.get("action");
-                    } catch (Exception e) {
-                        // Handle as plain text if not valid JSON
-                        System.out.println("Received plain text message: " + rawMessage);
-                        WebSocketHandler.onMessage(ctx, roomNumber, rawMessage);
-                        return;
-                    }
+                    switch (action) {
+                        case "connect":
+                            PlayerDTO player = mapper.convertValue(messageMap.get("player"), PlayerDTO.class);
+                            WebSocketHandler.onConnect(ctx, roomNumber, player);
+                            System.out.println("Player connected: " + player.getName());
+                            break;
 
-                    // Process JSON messages based on the "action" field
-                    if ("connect".equals(action)) {
-                        PlayerDTO player = mapper.convertValue(messageMap.get("player"), PlayerDTO.class);
-                        WebSocketHandler.onConnect(ctx, roomNumber, player);
-                        System.out.println("Player connected: " + player.getName());
-                    } else if ("message".equals(action)) {
-                        String message = (String) messageMap.get("message");
-                        WebSocketHandler.onMessage(ctx, roomNumber, message);
-                    } else {
-                        ctx.send("Unrecognized action: " + action);
+                        case "pullNumber":
+                            // Retrieve player from the message
+                            PlayerDTO pullRequest = messageMap.containsKey("player")
+                                    ? mapper.convertValue(messageMap.get("player"), PlayerDTO.class)
+                                    : WebSocketHandler.getPlayerFromContext(ctx, roomNumber);
+
+                            System.out.println("Pull request from: " + pullRequest.getName());
+                            // Validate the host
+                            if (roomDAO.getRoom(roomNumber).getHost().getId() == pullRequest.getId()) {
+                                int nextNumber = roomDAO.pullNumber(roomNumber);
+                                WebSocketHandler.broadcastMessage(roomNumber, "Next number: " + nextNumber);
+                                System.out.println("Number pulled: " + nextNumber);
+                            } else {
+                                ctx.send("Only the host can pull numbers");
+                            }
+                            break;
+
+                        case "chat":
+                            // Chat message broadcast
+                            String chatMessage = (String) messageMap.get("message");
+                            PlayerDTO sender = WebSocketHandler.getPlayerFromContext(ctx, roomNumber);
+                            WebSocketHandler.broadcastMessage(roomNumber, sender.getName() + ": " + chatMessage);
+                            break;
+
+                        default:
+                            ctx.send("Unknown action: " + action);
                     }
                 } catch (Exception e) {
                     System.err.println("Error processing WebSocket message: " + e.getMessage());
@@ -66,32 +83,4 @@ public class WebSocketRoute {
         });
     }
 
-
-//        app.ws("/rooms/{roomNumber}", ws -> {
-//            ws.onConnect(ctx -> {
-//                System.out.println("WebSocket connected: " + ctx.session.getRemoteAddress());
-//                int roomNumber = Integer.parseInt(ctx.pathParam("roomNumber"));
-//                PlayerDTO player = ctx.sessionAttribute("player");
-//
-//                if (player != null) {
-//                    WebSocketHandler.onConnect(ctx, roomNumber, player);
-//                } else {
-//                    ctx.send("Player information missing");
-//                    ctx.session.close();
-//                }
-//            });
-//
-////            ws.onMessage(ctx -> {
-////                int roomNumber = Integer.parseInt(ctx.pathParam("roomNumber"));
-////                String message = ctx.message();
-////                WebSocketHandler.onMessage(ctx, roomNumber, message);
-////            });
-//
-//            ws.onClose(ctx -> {
-//                System.out.println("WebSocket disconnected: " + ctx.session.getRemoteAddress());
-//                int roomNumber = Integer.parseInt(ctx.pathParam("roomNumber"));
-//                WebSocketHandler.onDisconnect(ctx, roomNumber);
-//            });
-//        });
-//    }
 }
