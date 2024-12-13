@@ -27,28 +27,7 @@ public class WebSocketHandler {
 
         System.out.println("Player reconnected: " + player.getName() + " to room: " + roomNumber);
     }
-//    public static void onConnect(WsContext ctx, int roomNumber, PlayerDTO player) {
-//        System.out.println("Player connecting: " + player.getName() + " to room: " + roomNumber);
-//
-//        roomSessions.putIfAbsent(roomNumber, new ConcurrentHashMap<>());
-//        Map<WsContext, PlayerDTO> playersInRoom = roomSessions.get(roomNumber);
-//
-//        if (player != null) {
-//            // Check if the player already exists
-//            playersInRoom.entrySet().removeIf(entry -> entry.getValue().getId() == player.getId());
-//
-//            // Add the new context for the player
-//            playersInRoom.put(ctx, player);
-//
-//            System.out.println("Player " + player.getName() + " added to room " + roomNumber);
-//        } else {
-//            System.err.println("Player data missing, closing connection.");
-//            ctx.send("Error: Player data missing.");
-//            ctx.session.close();
-//        }
-//        // Log players in the room for debugging
-//        System.out.println("Current players in room " + roomNumber + ": " + playersInRoom.values());
-//    }
+
 
     public static PlayerDTO getPlayerFromContext(WsContext ctx, int roomNumber) {
         Map<WsContext, PlayerDTO> playersInRoom = roomSessions.get(roomNumber);
