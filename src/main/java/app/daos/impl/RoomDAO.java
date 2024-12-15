@@ -49,6 +49,15 @@ public class RoomDAO {
         }
     }
 
+    public PlayerDTO getHost(int roomNumber) {
+        try (var em = emf.createEntityManager()) {
+            var query = em.createQuery("SELECT r.host FROM Room r WHERE r.roomNumber = :roomNumber", Player.class);
+            query.setParameter("roomNumber", roomNumber);
+            Player host = query.getSingleResult();
+            return new PlayerDTO(host);
+        }
+    }
+
     public RoomWithHostDTO create(RoomDTO roomDTO, PlayerDTO hostDTO) {
         try (var em = emf.createEntityManager()) {
             em.getTransaction().begin();
@@ -94,8 +103,7 @@ public class RoomDAO {
             query.setParameter("roomNumber", roomNumber);
             Room room = query.getSingleResult();
 
-            Player host = room.getHost();
-            host.updateLastActive();
+            room.updateLastActive();
 
             int number = room.pullNumber();
             em.merge(room);
@@ -189,7 +197,8 @@ public class RoomDAO {
     private boolean checkWinningCondition(String[][] board, List<Integer> pulledNumbers) {
         // Check rows
         for (String[] row : board) {
-            if (Arrays.stream(row).allMatch(num -> pulledNumbers.contains(Integer.parseInt(num)))) {
+            if (Arrays.stream(row).allMatch(num ->
+                    "FREE".equals(num) || pulledNumbers.contains(Integer.parseInt(num)))) {
                 return true;
             }
         }
@@ -198,7 +207,7 @@ public class RoomDAO {
         for (int col = 0; col < board[0].length; col++) {
             boolean columnMatch = true;
             for (String[] row : board) {
-                if (!pulledNumbers.contains(Integer.parseInt(row[col]))) {
+                if (!"FREE".equals(row[col]) && !pulledNumbers.contains(Integer.parseInt(row[col]))) {
                     columnMatch = false;
                     break;
                 }
@@ -210,13 +219,17 @@ public class RoomDAO {
         boolean leftDiagonal = true;
         boolean rightDiagonal = true;
         for (int i = 0; i < board.length; i++) {
-            if (!pulledNumbers.contains(Integer.parseInt(board[i][i]))) {
+            // Left diagonal
+            if (!"FREE".equals(board[i][i]) && !pulledNumbers.contains(Integer.parseInt(board[i][i]))) {
                 leftDiagonal = false;
             }
-            if (!pulledNumbers.contains(Integer.parseInt(board[i][board.length - 1 - i]))) {
+            // Right diagonal
+            if (!"FREE".equals(board[i][board.length - 1 - i]) &&
+                    !pulledNumbers.contains(Integer.parseInt(board[i][board.length - 1 - i]))) {
                 rightDiagonal = false;
             }
         }
+
         return leftDiagonal || rightDiagonal;
     }
 

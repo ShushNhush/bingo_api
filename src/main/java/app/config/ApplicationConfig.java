@@ -1,6 +1,9 @@
 package app.config;
 
+import app.daos.impl.RoomDAO;
+import app.handlers.WebSocketHandler;
 import app.routes.WebSocketRoute;
+import app.services.RoomCleanupService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import app.exceptions.ApiException;
 import app.routes.Routes;
@@ -24,6 +27,7 @@ public class ApplicationConfig {
     private static AccessController accessController = new AccessController();
     private static Logger logger = LoggerFactory.getLogger(ApplicationConfig.class);
     private static int count = 1;
+    private static RoomCleanupService roomCleanupService;
 
     public static void configuration(JavalinConfig config) {
         config.showJavalinBanner = false;
@@ -49,6 +53,18 @@ public class ApplicationConfig {
         app.exception(app.security.exceptions.ApiException.class, ApplicationConfig::apiSecurityExceptionHandler);
         app.exception(NotAuthorizedException.class, ApplicationConfig::apiNotAuthorizedExceptionHandler);
         app.exception(Exception.class, ApplicationConfig::generalExceptionHandler);
+
+
+        // Initialize and start RoomCleanupService
+        RoomDAO roomDAO = new RoomDAO();
+        WebSocketHandler webSocketHandler = new WebSocketHandler();
+        roomCleanupService = new RoomCleanupService(roomDAO, webSocketHandler);
+
+        // Add shutdown hook for cleanup service and other resources
+        Runtime.getRuntime().addShutdownHook(new Thread(() -> {
+            System.out.println("Shutting down application...");
+            roomCleanupService.shutdown(); // Stop RoomCleanupService
+        }));
 
         app.start(port);
         return app;

@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -31,6 +32,8 @@ public class RoomDTO {
 
     private List<PlayerDTO> players = new ArrayList<>();;
 
+    private LocalDateTime lastActiveAt;
+
     public RoomDTO(Room room) {
         this.id = room.getId();
         this.rules = room.getRules();
@@ -39,6 +42,7 @@ public class RoomDTO {
         this.host = new PlayerDTO(room.getHost());
         this.availableNumbers = room.getAvailableNumbers();
         this.pulledNumbers = room.getPulledNumbers();
+        this.lastActiveAt = room.getLastActiveAt();
         this.players = room.getPlayers().stream()
                 .map(PlayerDTO::new)
                 .collect(java.util.stream.Collectors.toList());

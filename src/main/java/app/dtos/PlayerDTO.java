@@ -33,7 +33,6 @@ public class PlayerDTO {
         this.name = player.getName();
         this.board = player.getBoard();
         this.room = player.getRoom();
-        this.lastActiveAt = player.getLastActiveAt();
     }
 
     public PlayerDTO(int id, String name) {

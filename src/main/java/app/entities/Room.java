@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -41,6 +42,13 @@ public class Room {
 
     @OneToMany(mappedBy = "room", cascade = CascadeType.REMOVE, orphanRemoval = true)
     private List<Player> players;
+
+    private LocalDateTime lastActiveAt;
+
+    @PrePersist
+    protected void onCreate() {
+        lastActiveAt = LocalDateTime.now();
+    }
 
     public Room(RoomDTO roomDTO) {
         this.id = roomDTO.getId();
@@ -81,6 +89,9 @@ public class Room {
         player.setRoom(this); // Ensure consistency
     }
 
+    public void updateLastActive() {
+        this.lastActiveAt = LocalDateTime.now();
+    }
 
     @Override
     public boolean equals(Object o) {
