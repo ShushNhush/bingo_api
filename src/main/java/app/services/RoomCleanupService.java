@@ -29,7 +29,7 @@ public class RoomCleanupService {
 
     private void cleanupInactiveRooms() {
         LocalDateTime now = LocalDateTime.now();
-        LocalDateTime inactivityThreshold = now.minusSeconds(30); // Set the inactivity threshold (e.g., 10 minutes)
+        LocalDateTime inactivityThreshold = now.minusMinutes(10); // Set the inactivity threshold (e.g., 10 minutes)
 
         try (var em = emf.createEntityManager()) {
             em.getTransaction().begin();
