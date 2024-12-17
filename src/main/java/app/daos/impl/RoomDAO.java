@@ -110,8 +110,7 @@ public class RoomDAO {
 
             em.getTransaction().commit();
             return number;
-        }
-        catch (NoResultException e) {
+        } catch (NoResultException e) {
             throw new IllegalArgumentException("Room not found!");
         }
     }
@@ -140,6 +139,14 @@ public class RoomDAO {
 
             em.getTransaction().commit();
             return new RoomWithHostDTO(new RoomDTO(room), new PlayerDTO(newPlayer));
+        } catch (NoResultException e) {
+            throw new IllegalArgumentException("Room with number " + roomNumber + " does not exist.");
+        } catch (IllegalArgumentException e) {
+            // Log the error (optional)
+            System.err.println("Error: " + e.getMessage());
+
+            // Re-throw the exception or handle it
+            throw e;
         }
     }
 

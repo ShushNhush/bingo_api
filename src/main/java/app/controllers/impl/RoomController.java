@@ -14,6 +14,7 @@ import app.utils.Utils;
 import io.javalin.http.Context;
 import io.javalin.websocket.WsContext;
 import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.NoResultException;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.HashMap;
@@ -93,7 +94,10 @@ public class RoomController {
 
 
             ctx.status(201).json(response);
-        } catch (IllegalArgumentException e) {
+        } catch (NoResultException e) {
+            ctx.status(404).json(Map.of("error", "Room doesnt exist", "details", e.getMessage()));
+        }
+        catch (IllegalArgumentException e) {
             ctx.status(400).json(Map.of("error", "Invalid input", "details", e.getMessage()));
         } catch (Exception e) {
             e.printStackTrace();
