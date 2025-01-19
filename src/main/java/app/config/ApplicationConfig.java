@@ -42,10 +42,11 @@ public class ApplicationConfig {
     public static Javalin startServer(int port) {
         Javalin app = Javalin.create(ApplicationConfig::configuration);
 
-        app.beforeMatched(accessController::accessHandler);
-        app.after(ApplicationConfig::afterRequest);
-        app.before(ApplicationConfig::corsHeaders);
-        app.options("/*", ApplicationConfig::corsHeadersOptions);
+        app.before(ApplicationConfig::corsHeaders); // First middleware for CORS
+        app.beforeMatched(accessController::accessHandler); // Security handler
+        app.after(ApplicationConfig::afterRequest); // Run after route execution
+        app.options("/*", ApplicationConfig::corsHeadersOptions); // Preflight requests
+
 
         new WebSocketRoute().register(app);
 
@@ -103,19 +104,26 @@ public class ApplicationConfig {
     }
 
     private static void corsHeaders(Context ctx) {
-        ctx.header("Access-Control-Allow-Origin", "*");
+        String origin = ctx.header("Origin");
+        if (origin != null && origin.equals("https://bingo.gudbergsen.com")) {
+            ctx.header("Access-Control-Allow-Origin", origin); // Dynamically set origin
+        }
         ctx.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
         ctx.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-        ctx.header("Access-Control-Allow-Credentials", "true");
+        ctx.header("Access-Control-Allow-Credentials", "true"); // Only if needed
     }
 
     private static void corsHeadersOptions(Context ctx) {
-        ctx.header("Access-Control-Allow-Origin", "*");
+        String origin = ctx.header("Origin");
+        if (origin != null && origin.equals("https://bingo.gudbergsen.com")) {
+            ctx.header("Access-Control-Allow-Origin", origin);
+        }
         ctx.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
         ctx.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-        ctx.header("Access-Control-Allow-Credentials", "true");
-        ctx.status(204);
+        ctx.header("Access-Control-Allow-Credentials", "true"); // Only if needed
+        ctx.status(204); // No content for preflight response
     }
+
 
 
 }
