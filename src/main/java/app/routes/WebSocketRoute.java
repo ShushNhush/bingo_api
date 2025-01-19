@@ -41,10 +41,14 @@ public class WebSocketRoute {
                     String action = (String) messageMap.get("action");
 
                     switch (action) {
+
                         case "connect":
                             PlayerDTO player = mapper.convertValue(messageMap.get("player"), PlayerDTO.class);
                             WebSocketHandler.onConnect(ctx, roomNumber, player);
                             System.out.println("Player connected: " + player.getName());
+                            Map<String, Object> connectPayload = Map.of("pulledNumbers", roomDAO.pulledNumbers(roomNumber));
+                            System.out.println("pulled numbers: " + roomDAO.pulledNumbers(roomNumber));
+                            WebSocketHandler.sendMessage(ctx, "pulledNumbers", connectPayload);
                             break;
 
                         case "pullNumber":

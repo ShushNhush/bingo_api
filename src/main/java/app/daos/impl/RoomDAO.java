@@ -11,8 +11,10 @@ import app.utils.RoomCodeGenerator;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.NoResultException;
+import jakarta.persistence.Query;
 import jakarta.persistence.TypedQuery;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -94,6 +96,8 @@ public class RoomDAO {
             em.getTransaction().commit();
         }
     }
+
+
 
     public int pullNumber(int roomNumber) {
         try (var em = emf.createEntityManager()) {
@@ -198,6 +202,19 @@ public class RoomDAO {
             return isWinner;
         } catch (Exception e) {
             throw new RuntimeException("Error checking winner: " + e.getMessage(), e);
+        }
+    }
+
+    public List<Integer> pulledNumbers(int roomNumber) {
+        try (var em = emf.createEntityManager()) {
+            // Query all pulledNumbers for the given roomNumber
+            String jpql = "SELECT p FROM Room r JOIN r.pulledNumbers p WHERE r.roomNumber = :roomNumber";
+            return em.createQuery(jpql, Integer.class)
+                    .setParameter("roomNumber", roomNumber)
+                    .getResultList();
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw e;
         }
     }
 
